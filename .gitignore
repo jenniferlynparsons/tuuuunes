@@ -36,3 +36,4 @@ Thumbs.db
 # User data
 library/
 backups/
+coverage/
