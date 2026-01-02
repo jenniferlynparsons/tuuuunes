@@ -1,0 +1,31 @@
+{
+  "tracks": [
+    {
+      "title": "Sample Track 1",
+      "artist": "Sample Artist",
+      "album": "Sample Album",
+      "album_artist": "Sample Artist",
+      "track_number": 1,
+      "disc_number": 1,
+      "release_year": 2024,
+      "genres": ["Rock", "Alternative"],
+      "duration_seconds": 180,
+      "bitrate": 320000,
+      "sample_rate": 44100,
+      "codec": "mp3"
+    },
+    {
+      "title": "Compilation Track",
+      "artist": "Various Artists Track Artist",
+      "album": "Best of Compilation",
+      "album_artist": "Various Artists",
+      "track_number": 1,
+      "is_compilation": true,
+      "genres": ["Pop"],
+      "duration_seconds": 200,
+      "bitrate": 256000,
+      "sample_rate": 44100,
+      "codec": "flac"
+    }
+  ]
+}
