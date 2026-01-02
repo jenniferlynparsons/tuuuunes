@@ -1,0 +1,40 @@
+{
+  "name": "tuuuuunes",
+  "version": "1.0.0",
+  "description": "A modern music library manager combining iTunes 11's superior information architecture with iTunes 12's visual design",
+  "main": "dist-electron/main/index.js",
+  "author": "",
+  "license": "ISC",
+  "keywords": [
+    "music",
+    "player",
+    "library",
+    "electron",
+    "react"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && electron-builder",
+    "preview": "vite preview",
+    "test": "jest"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "electron-updater": "^6.6.2",
+    "music-metadata": "^8.1.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "electron": "^33.2.0",
+    "electron-builder": "^24.13.3",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.11",
+    "vite-plugin-electron": "^0.29.0",
+    "vite-plugin-electron-renderer": "^0.14.6"
+  }
+}
