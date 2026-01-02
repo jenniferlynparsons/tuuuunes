@@ -37,8 +37,15 @@ export default defineConfig(({ command }) => {
               sourcemap,
               minify: isBuild,
               outDir: 'dist-electron/main',
+              target: 'node18',
               rollupOptions: {
-                external: Object.keys('dependencies' in pkg ? pkg.dependencies : {}),
+                external: [
+                  'electron',
+                  ...Object.keys('dependencies' in pkg ? pkg.dependencies : {}),
+                ],
+                output: {
+                  format: 'cjs',
+                },
               },
             },
           },
@@ -52,8 +59,15 @@ export default defineConfig(({ command }) => {
               sourcemap: sourcemap ? 'inline' : undefined, // #332
               minify: isBuild,
               outDir: 'dist-electron/preload',
+              target: 'node18',
               rollupOptions: {
-                external: Object.keys('dependencies' in pkg ? pkg.dependencies : {}),
+                external: [
+                  'electron',
+                  ...Object.keys('dependencies' in pkg ? pkg.dependencies : {}),
+                ],
+                output: {
+                  format: 'cjs',
+                },
               },
             },
           },
