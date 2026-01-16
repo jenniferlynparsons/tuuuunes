@@ -1,6 +1,53 @@
 import { ipcRenderer, contextBridge } from 'electron'
 
-// --------- Expose some API to the Renderer process ---------
+// --------- Expose Music Library API to the Renderer process ---------
+contextBridge.exposeInMainWorld('api', {
+  // ===== FILE OPERATIONS =====
+  selectFolder: () => ipcRenderer.invoke('file:select-folder'),
+  importMusic: (path: string) => ipcRenderer.invoke('file:import', path),
+  scanFolder: (path: string) => ipcRenderer.invoke('file:scan-folder', path),
+
+  // ===== DATABASE: TRACKS =====
+  getTracks: (filters?: object, sort?: object) => ipcRenderer.invoke('db:get-tracks', filters, sort),
+  getTrack: (trackId: number) => ipcRenderer.invoke('db:get-track', trackId),
+  updateTrack: (trackId: number, updates: object) => ipcRenderer.invoke('db:update-track', trackId, updates),
+  searchTracks: (query: string) => ipcRenderer.invoke('db:search-tracks', query),
+
+  // ===== DATABASE: ALBUMS =====
+  getAlbums: (filters?: object, sort?: object) => ipcRenderer.invoke('db:get-albums', filters, sort),
+  getAlbumDetails: (albumTitle: string, albumArtist: string) =>
+    ipcRenderer.invoke('db:get-album-details', albumTitle, albumArtist),
+
+  // ===== DATABASE: PLAYLISTS =====
+  getPlaylists: () => ipcRenderer.invoke('db:get-playlists'),
+  getPlaylist: (playlistId: number) => ipcRenderer.invoke('db:get-playlist', playlistId),
+  getPlaylistTracks: (playlistId: number) => ipcRenderer.invoke('db:get-playlist-tracks', playlistId),
+  createPlaylist: (name: string, description?: string) => ipcRenderer.invoke('db:create-playlist', name, description),
+  updatePlaylist: (playlistId: number, updates: object) => ipcRenderer.invoke('db:update-playlist', playlistId, updates),
+  deletePlaylist: (playlistId: number) => ipcRenderer.invoke('db:delete-playlist', playlistId),
+  addTracksToPlaylist: (playlistId: number, trackIds: number[]) =>
+    ipcRenderer.invoke('db:add-tracks-to-playlist', playlistId, trackIds),
+  removeTrackFromPlaylist: (playlistId: number, trackId: number) =>
+    ipcRenderer.invoke('db:remove-track-from-playlist', playlistId, trackId),
+
+  // ===== SYSTEM / LIBRARY =====
+  getLibraryPath: () => ipcRenderer.invoke('app:get-library-path'),
+  getLibraryStats: () => ipcRenderer.invoke('app:get-library-stats'),
+  checkLibraryExists: () => ipcRenderer.invoke('app:check-library-exists'),
+
+  // ===== EVENT LISTENERS =====
+  onImportProgress: (callback: (data: any) => void) => {
+    ipcRenderer.on('import:progress', (_, data) => callback(data))
+  },
+  onImportComplete: (callback: (data: any) => void) => {
+    ipcRenderer.on('import:complete', (_, data) => callback(data))
+  },
+  onImportError: (callback: (error: string) => void) => {
+    ipcRenderer.on('import:error', (_, error) => callback(error))
+  },
+})
+
+// --------- Keep generic ipcRenderer exposed for backward compatibility ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
   on(...args: Parameters<typeof ipcRenderer.on>) {
     const [channel, listener] = args
