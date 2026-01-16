@@ -41,7 +41,76 @@ Currently in planning phase. See the [project plan](project plan/PROJECT-OVERVIE
 
 ## Getting Started
 
-Documentation for setup and development will be added as the project progresses.
+### Prerequisites
+
+- Node.js (latest LTS version recommended)
+- npm or yarn package manager
+- macOS (primary development platform)
+
+### Installation
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+### Running the Application
+
+```bash
+npm run dev
+```
+
+### Testing
+
+The project uses Jest for testing with separate configurations for main process (Node.js) and renderer process (React/JSDOM) code.
+
+#### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode (useful during development)
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+```
+
+#### Test Structure
+
+Tests are located alongside the code they test:
+
+```
+src/
+├── main/
+│   ├── database.js
+│   └── database.test.js        # Unit tests for database
+├── renderer/
+│   └── components/
+│       ├── Sidebar.jsx
+│       └── Sidebar.test.jsx    # Component tests
+└── tests/
+    ├── fixtures/               # Test fixtures and sample data
+    │   ├── audio/              # Sample audio files (MP3, FLAC, M4A)
+    │   └── metadata/           # Sample metadata JSON
+    └── setup.js                # Test environment setup
+```
+
+#### Coverage Goals
+
+- Target: >80% coverage on core business logic
+- Main process: Database operations, file handling, metadata extraction
+- Renderer: React components, UI interactions
+
+#### Test Fixtures
+
+Sample audio files are located in `tests/fixtures/audio/`:
+- `test.mp3` - MP3 with complete metadata
+- `test.flac` - FLAC with Vorbis comments
+- `test.m4a` - M4A with iTunes metadata
+- `no-tags.mp3` - MP3 without metadata (for edge case testing)
 
 ## Why Tuuunes?
 
