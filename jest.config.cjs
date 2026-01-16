@@ -4,6 +4,16 @@ module.exports = {
       displayName: 'main',
       testEnvironment: 'node',
       testMatch: ['**/src/main/**/*.test.js'],
+      transform: {
+        '^.+\\.js$': ['babel-jest', {
+          presets: [
+            ['@babel/preset-env', { targets: { node: 'current' } }]
+          ]
+        }]
+      },
+      transformIgnorePatterns: [
+        'node_modules/(?!(music-metadata|strtok3|token-types|peek-readable|file-type)/)'
+      ],
       collectCoverageFrom: [
         'src/main/**/*.js',
         '!src/main/**/*.test.js'

@@ -1,0 +1,200 @@
+/* PlayerBar - Fixed top bar with playback controls */
+/* iTunes 12 dark theme styling */
+
+.player-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 80px;
+  padding: 0 20px;
+  background-color: #1e1e1e;
+  border-bottom: 1px solid #3a3a3a;
+  user-select: none;
+}
+
+/* Playback Controls */
+.player-bar__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.player-bar__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.player-bar__button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.player-bar__button:active {
+  transform: scale(0.95);
+}
+
+.player-bar__button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.player-bar__button--play {
+  width: 40px;
+  height: 40px;
+  background-color: #ffffff;
+  color: #1e1e1e;
+}
+
+.player-bar__button--play:hover {
+  background-color: #e0e0e0;
+}
+
+.player-bar__button--play svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Progress Section */
+.player-bar__progress-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  max-width: 600px;
+}
+
+.player-bar__time {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #a0a0a0;
+  min-width: 40px;
+}
+
+.player-bar__time--current {
+  text-align: right;
+}
+
+.player-bar__time--duration {
+  text-align: left;
+}
+
+.player-bar__progress-track {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  background-color: #3a3a3a;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.player-bar__progress-track:hover .player-bar__progress-handle {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+.player-bar__progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background-color: #ffffff;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.player-bar__progress-handle {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  transform: translateX(-50%) translateY(-50%) scale(0);
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+}
+
+/* Now Playing Info */
+.player-bar__now-playing {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-bar__track-title {
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.player-bar__track-separator {
+  color: #a0a0a0;
+  margin: 0 2px;
+}
+
+.player-bar__track-artist {
+  color: #a0a0a0;
+}
+
+.player-bar__no-track {
+  color: #666666;
+  font-style: italic;
+}
+
+/* Volume Control */
+.player-bar__volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.player-bar__volume-icon {
+  width: 20px;
+  height: 20px;
+  color: #a0a0a0;
+}
+
+.player-bar__volume-slider {
+  width: 80px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #3a3a3a;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.player-bar__volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #ffffff;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.player-bar__volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #ffffff;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}

@@ -25,6 +25,9 @@ export default defineConfig(({ command }) => {
         main: {
           // Shortcut of `build.lib.entry`
           entry: 'electron/main/index.ts',
+          // Note: onstart for main is not called when using vite-plugin-electron/simple
+          // with both main and preload - only the last entry's (preload's) onstart runs.
+          // The ELECTRON_RUN_AS_NODE fix is applied in preload's onstart instead.
           onstart(args) {
             if (process.env.VSCODE_DEBUG) {
               console.log(/* For `.vscode/.debug.script.mjs` */'[startup] Electron App')
@@ -54,6 +57,13 @@ export default defineConfig(({ command }) => {
           // Shortcut of `build.rollupOptions.input`.
           // Preload scripts may contain Web assets, so use the `build.rollupOptions.input` instead `build.lib.entry`.
           input: 'electron/preload/index.ts',
+          onstart(args) {
+            // Fix for environments that set ELECTRON_RUN_AS_NODE=1 (e.g., Claude Code)
+            // This env var makes Electron run as Node.js instead of as a desktop app
+            const env = { ...process.env }
+            delete env.ELECTRON_RUN_AS_NODE
+            args.startup(['.', '--no-sandbox'], { env })
+          },
           vite: {
             build: {
               sourcemap: sourcemap ? 'inline' : undefined, // #332
