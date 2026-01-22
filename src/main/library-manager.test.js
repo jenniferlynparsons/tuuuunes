@@ -457,8 +457,18 @@ describe('LibraryManager', () => {
   });
 
   describe('Path Validation', () => {
-    test('validates absolute paths', () => {
-      expect(libraryManager.isValidPath('/absolute/path')).toBe(true);
+    const os = require('os');
+    const homeDir = os.homedir();
+
+    test('validates paths within home directory', () => {
+      expect(libraryManager.isValidPath(path.join(homeDir, 'Music'))).toBe(true);
+      expect(libraryManager.isValidPath(path.join(homeDir, 'Documents'))).toBe(true);
+    });
+
+    test('rejects paths outside home directory', () => {
+      expect(libraryManager.isValidPath('/etc/passwd')).toBe(false);
+      expect(libraryManager.isValidPath('/var/log')).toBe(false);
+      expect(libraryManager.isValidPath('/tmp/test')).toBe(false);
     });
 
     test('rejects relative paths', () => {
@@ -477,6 +487,18 @@ describe('LibraryManager', () => {
 
     test('rejects paths with null bytes', () => {
       expect(libraryManager.isValidPath('/path/with\0null')).toBe(false);
+    });
+
+    test('rejects sensitive directories', () => {
+      expect(libraryManager.isValidPath(path.join(homeDir, '.ssh'))).toBe(false);
+      expect(libraryManager.isValidPath(path.join(homeDir, '.ssh', 'id_rsa'))).toBe(false);
+      expect(libraryManager.isValidPath(path.join(homeDir, '.gnupg'))).toBe(false);
+      expect(libraryManager.isValidPath(path.join(homeDir, '.aws'))).toBe(false);
+    });
+
+    test('handles path traversal attempts', () => {
+      // Path traversal that tries to escape home
+      expect(libraryManager.isValidPath(path.join(homeDir, '..', 'etc', 'passwd'))).toBe(false);
     });
   });
 

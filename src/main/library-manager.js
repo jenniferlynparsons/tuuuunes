@@ -349,16 +349,17 @@ class LibraryManager {
   }
 
   /**
-   * Validate a path string
+   * Validate a path string for security
+   * Prevents path traversal attacks and access to sensitive directories
    * @param {string} pathStr - Path to validate
-   * @returns {boolean} True if path is valid
+   * @returns {boolean} True if path is safe to access
    */
   isValidPath(pathStr) {
     if (!pathStr || typeof pathStr !== 'string') {
       return false;
     }
 
-    // Check for null bytes
+    // Check for null bytes (filesystem injection)
     if (pathStr.includes('\0')) {
       return false;
     }
@@ -366,6 +367,36 @@ class LibraryManager {
     // Check if path is absolute
     if (!path.isAbsolute(pathStr)) {
       return false;
+    }
+
+    // Resolve the path to handle symlinks and relative components (../)
+    const resolved = path.resolve(pathStr);
+    const homeDir = os.homedir();
+
+    // Only allow paths within the home directory
+    if (!resolved.startsWith(homeDir)) {
+      return false;
+    }
+
+    // Block sensitive directories within home
+    const blockedDirs = [
+      '.ssh',
+      '.gnupg',
+      '.config',
+      '.local',
+      '.cache',
+      'Library/Keychains',
+      'Library/Application Support/Keychain',
+      '.aws',
+      '.azure',
+      '.kube'
+    ];
+
+    for (const blocked of blockedDirs) {
+      const blockedPath = path.join(homeDir, blocked);
+      if (resolved.startsWith(blockedPath)) {
+        return false;
+      }
     }
 
     return true;

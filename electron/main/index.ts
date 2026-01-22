@@ -152,6 +152,15 @@ function registerIPCHandlers() {
       if (!folderPath) {
         throw new Error('Folder path is required')
       }
+
+      // Security: Validate path before filesystem access
+      if (!libraryManager) {
+        throw new Error('Library manager not initialized')
+      }
+      if (!libraryManager.isValidPath(folderPath)) {
+        throw new Error('Access denied: invalid or restricted path')
+      }
+
       // Load import modules on first use
       loadImportModules()
       const files = await scanFolder(folderPath)
@@ -174,6 +183,11 @@ function registerIPCHandlers() {
 
       if (!folderPath) {
         throw new Error('Folder path is required')
+      }
+
+      // Security: Validate path before filesystem access
+      if (!libraryManager.isValidPath(folderPath)) {
+        throw new Error('Access denied: invalid or restricted path')
       }
 
       // Load import modules on first use
