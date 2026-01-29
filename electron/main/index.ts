@@ -24,13 +24,15 @@ process.env.APP_ROOT = path.join(__dirname, '../..')
 // Global instances of database and library manager
 let database: any = null
 let libraryManager: any = null
+let settings: any = null
 let MusicDatabase: any = null
 let LibraryManager: any = null
+let Settings: any = null
 let importFolder: any = null
 let scanFolder: any = null
 
 /**
- * Lazy-load core backend modules (database, library manager)
+ * Lazy-load core backend modules (database, library manager, settings)
  * These don't depend on ESM modules
  */
 function loadCoreModules() {
@@ -39,9 +41,11 @@ function loadCoreModules() {
   try {
     const databasePath = path.join(process.env.APP_ROOT!, 'src/main/database.js')
     const libraryManagerPath = path.join(process.env.APP_ROOT!, 'src/main/library-manager.js')
+    const settingsPath = path.join(process.env.APP_ROOT!, 'src/main/settings.js')
 
     MusicDatabase = require(databasePath)
     LibraryManager = require(libraryManagerPath)
+    Settings = require(settingsPath)
 
     console.log('[IPC] Core modules loaded successfully')
   } catch (error) {
@@ -489,13 +493,164 @@ function registerIPCHandlers() {
     }
   })
 
+  // ===== SETTINGS OPERATIONS =====
+
+  /**
+   * Get a setting by key (supports dot notation)
+   */
+  ipcMain.handle('settings:get', async (_event, key: string) => {
+    try {
+      if (!Settings) {
+        throw new Error('Settings not initialized')
+      }
+      return Settings.get(key)
+    } catch (error) {
+      console.error('[IPC] Error in settings:get:', error)
+      throw error
+    }
+  })
+
+  /**
+   * Set a setting by key
+   */
+  ipcMain.handle('settings:set', async (_event, key: string, value: any) => {
+    try {
+      if (!Settings) {
+        throw new Error('Settings not initialized')
+      }
+      Settings.set(key, value)
+      return true
+    } catch (error) {
+      console.error('[IPC] Error in settings:set:', error)
+      throw error
+    }
+  })
+
+  /**
+   * Get all settings
+   */
+  ipcMain.handle('settings:get-all', async () => {
+    try {
+      if (!Settings) {
+        throw new Error('Settings not initialized')
+      }
+      return Settings.getAll()
+    } catch (error) {
+      console.error('[IPC] Error in settings:get-all:', error)
+      throw error
+    }
+  })
+
+  /**
+   * Set multiple settings at once
+   */
+  ipcMain.handle('settings:set-all', async (_event, settings: object) => {
+    try {
+      if (!Settings) {
+        throw new Error('Settings not initialized')
+      }
+      Settings.setAll(settings)
+      return true
+    } catch (error) {
+      console.error('[IPC] Error in settings:set-all:', error)
+      throw error
+    }
+  })
+
+  /**
+   * Reset a setting to default
+   */
+  ipcMain.handle('settings:reset', async (_event, key: string) => {
+    try {
+      if (!Settings) {
+        throw new Error('Settings not initialized')
+      }
+      Settings.reset(key)
+      return true
+    } catch (error) {
+      console.error('[IPC] Error in settings:reset:', error)
+      throw error
+    }
+  })
+
+  /**
+   * Reset all settings to defaults
+   */
+  ipcMain.handle('settings:reset-all', async () => {
+    try {
+      if (!Settings) {
+        throw new Error('Settings not initialized')
+      }
+      Settings.resetAll()
+      return true
+    } catch (error) {
+      console.error('[IPC] Error in settings:reset-all:', error)
+      throw error
+    }
+  })
+
+  /**
+   * Get path to settings file
+   */
+  ipcMain.handle('settings:get-path', async () => {
+    try {
+      if (!Settings) {
+        throw new Error('Settings not initialized')
+      }
+      return Settings.getPath()
+    } catch (error) {
+      console.error('[IPC] Error in settings:get-path:', error)
+      throw error
+    }
+  })
+
+  /**
+   * Save last session state
+   */
+  ipcMain.handle('settings:save-session', async (_event, sessionState: object) => {
+    try {
+      if (!Settings) {
+        throw new Error('Settings not initialized')
+      }
+      Settings.saveLastSession(sessionState)
+      return true
+    } catch (error) {
+      console.error('[IPC] Error in settings:save-session:', error)
+      throw error
+    }
+  })
+
+  /**
+   * Get last session state
+   */
+  ipcMain.handle('settings:get-session', async () => {
+    try {
+      if (!Settings) {
+        throw new Error('Settings not initialized')
+      }
+      return Settings.getLastSession()
+    } catch (error) {
+      console.error('[IPC] Error in settings:get-session:', error)
+      throw error
+    }
+  })
+
   console.log('[IPC] All handlers registered successfully')
 }
 
 async function createWindow() {
+  // Get saved window state from settings
+  const windowState = Settings ? Settings.getWindowState() : { width: 1200, height: 800 }
+
   win = new BrowserWindow({
-    title: 'Main window',
+    title: 'Tuuuuunes',
     icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
+    width: windowState.width,
+    height: windowState.height,
+    x: windowState.x,
+    y: windowState.y,
+    minWidth: 800,
+    minHeight: 600,
     webPreferences: {
       preload,
       // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
@@ -506,6 +661,27 @@ async function createWindow() {
       // contextIsolation: false,
     },
   })
+
+  // Restore maximized state if applicable
+  if (windowState.isMaximized) {
+    win.maximize()
+  }
+
+  // Save window state on resize/move (debounced)
+  let saveStateTimeout: NodeJS.Timeout | null = null
+  const saveWindowState = () => {
+    if (saveStateTimeout) clearTimeout(saveStateTimeout)
+    saveStateTimeout = setTimeout(() => {
+      if (win && Settings) {
+        Settings.saveWindowState(win)
+      }
+    }, 500) // Debounce 500ms
+  }
+
+  win.on('resize', saveWindowState)
+  win.on('move', saveWindowState)
+  win.on('maximize', saveWindowState)
+  win.on('unmaximize', saveWindowState)
 
   if (VITE_DEV_SERVER_URL) { // #298
     win.loadURL(VITE_DEV_SERVER_URL)
@@ -542,6 +718,10 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
+  // Save final window state before closing
+  if (win && Settings) {
+    Settings.saveWindowState(win)
+  }
   win = null
   if (process.platform !== 'darwin') app.quit()
 })
