@@ -1,20 +1,26 @@
 // App - Main application component
 // Three-panel layout: PlayerBar (top), Sidebar (left), MainContent (right)
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ViewProvider } from './contexts/ViewContext';
 import PlayerBar from './components/PlayerBar';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
+import AudioEngine from './AudioEngine';
 import './App.css';
 
 function App() {
-  // Playback state - will be managed by audio engine in Phase 2
+  // Audio engine ref - persists across renders
+  const audioEngineRef = useRef(null);
+  const timeUpdateIntervalRef = useRef(null);
+
+  // Playback state
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Mock playlists - will be fetched from database in later phase
   const [playlists] = useState([
@@ -23,25 +29,123 @@ function App() {
     { id: 3, name: 'Workout Mix' },
   ]);
 
-  // Playback handlers - stubs for now, Phase 2 will implement
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-  };
+  // Initialize audio engine on mount
+  useEffect(() => {
+    audioEngineRef.current = new AudioEngine();
 
-  const handlePrevious = () => {
-    // Will be implemented in Phase 2
-  };
+    // Set up track ended callback
+    audioEngineRef.current.onTrackEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      // Will trigger next track in queue (Ticket 2.2)
+    };
 
-  const handleNext = () => {
-    // Will be implemented in Phase 2
-  };
+    // Set up error callback
+    audioEngineRef.current.onError = (error) => {
+      console.error('Audio playback error:', error);
+      setIsLoading(false);
+      setIsPlaying(false);
+    };
 
-  const handleSeek = (time) => {
+    // Cleanup on unmount
+    return () => {
+      if (timeUpdateIntervalRef.current) {
+        clearInterval(timeUpdateIntervalRef.current);
+      }
+      if (audioEngineRef.current) {
+        audioEngineRef.current.dispose();
+      }
+    };
+  }, []);
+
+  // Time update interval - runs while playing
+  useEffect(() => {
+    if (isPlaying) {
+      timeUpdateIntervalRef.current = setInterval(() => {
+        if (audioEngineRef.current) {
+          setCurrentTime(audioEngineRef.current.getCurrentTime());
+        }
+      }, 100); // 10 updates per second
+    } else {
+      if (timeUpdateIntervalRef.current) {
+        clearInterval(timeUpdateIntervalRef.current);
+        timeUpdateIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (timeUpdateIntervalRef.current) {
+        clearInterval(timeUpdateIntervalRef.current);
+      }
+    };
+  }, [isPlaying]);
+
+  // Load and play a track
+  const playTrack = useCallback(async (track) => {
+    if (!audioEngineRef.current || !track?.file_path) return;
+
+    setIsLoading(true);
+    try {
+      const loaded = await audioEngineRef.current.loadTrack(track.file_path);
+      setCurrentTrack(track);
+      setDuration(loaded.duration);
+      setCurrentTime(0);
+
+      audioEngineRef.current.play();
+      setIsPlaying(true);
+    } catch (error) {
+      console.error('Failed to load track:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Playback handlers
+  const handlePlayPause = useCallback(() => {
+    if (!audioEngineRef.current) return;
+
+    if (isPlaying) {
+      audioEngineRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioEngineRef.current.play();
+      setIsPlaying(true);
+    }
+  }, [isPlaying]);
+
+  const handlePrevious = useCallback(() => {
+    // Will be implemented with queue (Ticket 2.2)
+    // For now, restart current track if >3 seconds in
+    if (!audioEngineRef.current) return;
+
+    if (currentTime > 3) {
+      audioEngineRef.current.seek(0);
+      setCurrentTime(0);
+    }
+  }, [currentTime]);
+
+  const handleNext = useCallback(() => {
+    // Will be implemented with queue (Ticket 2.2)
+  }, []);
+
+  const handleSeek = useCallback((time) => {
+    if (!audioEngineRef.current) return;
+
+    audioEngineRef.current.seek(time);
     setCurrentTime(time);
-  };
+  }, []);
 
-  const handleVolumeChange = (newVolume) => {
+  const handleVolumeChange = useCallback((newVolume) => {
+    if (!audioEngineRef.current) return;
+
+    audioEngineRef.current.setVolume(newVolume);
     setVolume(newVolume);
+  }, []);
+
+  // Expose playTrack for MainContent to use (will be replaced by context in Ticket 2.4)
+  const playbackHandlers = {
+    playTrack,
+    isLoading
   };
 
   return (
