@@ -35,6 +35,17 @@ contextBridge.exposeInMainWorld('api', {
   getLibraryStats: () => ipcRenderer.invoke('app:get-library-stats'),
   checkLibraryExists: () => ipcRenderer.invoke('app:check-library-exists'),
 
+  // ===== SETTINGS =====
+  getSetting: (key: string) => ipcRenderer.invoke('settings:get', key),
+  setSetting: (key: string, value: any) => ipcRenderer.invoke('settings:set', key, value),
+  getAllSettings: () => ipcRenderer.invoke('settings:get-all'),
+  setAllSettings: (settings: object) => ipcRenderer.invoke('settings:set-all', settings),
+  resetSetting: (key: string) => ipcRenderer.invoke('settings:reset', key),
+  resetAllSettings: () => ipcRenderer.invoke('settings:reset-all'),
+  getSettingsPath: () => ipcRenderer.invoke('settings:get-path'),
+  saveSession: (sessionState: object) => ipcRenderer.invoke('settings:save-session', sessionState),
+  getSession: () => ipcRenderer.invoke('settings:get-session'),
+
   // ===== EVENT LISTENERS =====
   onImportProgress: (callback: (data: any) => void) => {
     ipcRenderer.on('import:progress', (_, data) => callback(data))
@@ -47,28 +58,11 @@ contextBridge.exposeInMainWorld('api', {
   },
 })
 
-// --------- Keep generic ipcRenderer exposed for backward compatibility ---------
-contextBridge.exposeInMainWorld('ipcRenderer', {
-  on(...args: Parameters<typeof ipcRenderer.on>) {
-    const [channel, listener] = args
-    return ipcRenderer.on(channel, (event, ...args) => listener(event, ...args))
-  },
-  off(...args: Parameters<typeof ipcRenderer.off>) {
-    const [channel, ...omit] = args
-    return ipcRenderer.off(channel, ...omit)
-  },
-  send(...args: Parameters<typeof ipcRenderer.send>) {
-    const [channel, ...omit] = args
-    return ipcRenderer.send(channel, ...omit)
-  },
-  invoke(...args: Parameters<typeof ipcRenderer.invoke>) {
-    const [channel, ...omit] = args
-    return ipcRenderer.invoke(channel, ...omit)
-  },
+// SECURITY: Raw ipcRenderer is NOT exposed to prevent bypassing context isolation.
+// All renderer-to-main communication must go through the curated 'api' object above.
 
-  // You can expose other APTs you need here.
-  // ...
-})
+// SECURITY: Raw ipcRenderer is NOT exposed to prevent bypassing context isolation.
+// All renderer-to-main communication must go through the curated 'api' object above.
 
 // --------- Preload scripts loading ---------
 function domReady(condition: DocumentReadyState[] = ['complete', 'interactive']) {

@@ -6,6 +6,73 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
+// Security: Whitelist of allowed sort columns to prevent SQL injection
+const ALLOWED_SORT_COLUMNS = [
+  'title', 'artist', 'album', 'album_artist',
+  'track_number', 'disc_number', 'release_year',
+  'date_added', 'duration_seconds', 'file_path'
+];
+const ALLOWED_SORT_ORDERS = ['ASC', 'DESC'];
+
+// Security: Field validation rules to prevent data attacks
+const FIELD_VALIDATION_RULES = {
+  title: { type: 'string', maxLength: 500 },
+  artist: { type: 'string', maxLength: 300 },
+  album: { type: 'string', maxLength: 300 },
+  album_artist: { type: 'string', maxLength: 300 },
+  track_number: { type: 'number', min: 0, max: 999 },
+  disc_number: { type: 'number', min: 0, max: 99 },
+  release_year: { type: 'number', min: 1900, max: 2100 },
+  is_compilation: { type: 'boolean' },
+  artwork_path: { type: 'string', maxLength: 512 }
+};
+
+/**
+ * Validate a field value against rules
+ * @param {string} field - Field name
+ * @param {any} value - Value to validate
+ * @throws {Error} If validation fails
+ */
+function validateFieldValue(field, value) {
+  const rules = FIELD_VALIDATION_RULES[field];
+  if (!rules) {
+    throw new Error(`Invalid field: ${field}`);
+  }
+
+  // Allow null values for optional fields
+  if (value === null || value === undefined) {
+    return;
+  }
+
+  // Type checking
+  const actualType = typeof value;
+  if (rules.type === 'boolean') {
+    if (actualType !== 'boolean' && value !== 0 && value !== 1) {
+      throw new Error(`Field ${field} must be a boolean`);
+    }
+  } else if (actualType !== rules.type) {
+    throw new Error(`Field ${field} must be ${rules.type}, got ${actualType}`);
+  }
+
+  // String length validation
+  if (rules.type === 'string' && rules.maxLength && value.length > rules.maxLength) {
+    throw new Error(`Field ${field} exceeds maximum length of ${rules.maxLength} characters`);
+  }
+
+  // Number range validation
+  if (rules.type === 'number') {
+    if (!Number.isInteger(value)) {
+      throw new Error(`Field ${field} must be an integer`);
+    }
+    if (rules.min !== undefined && value < rules.min) {
+      throw new Error(`Field ${field} must be at least ${rules.min}`);
+    }
+    if (rules.max !== undefined && value > rules.max) {
+      throw new Error(`Field ${field} must be at most ${rules.max}`);
+    }
+  }
+}
+
 class MusicDatabase {
   constructor(dbPath = ':memory:') {
     // If dbPath is not :memory:, ensure directory exists
@@ -264,9 +331,20 @@ class MusicDatabase {
       query += ' WHERE ' + conditions.join(' AND ');
     }
 
-    // Add sorting
+    // Add sorting with validation to prevent SQL injection
     const sortBy = options.sortBy || 'title';
-    const sortOrder = options.sortOrder || 'ASC';
+    const sortOrder = (options.sortOrder || 'ASC').toUpperCase();
+
+    // Validate sort column against whitelist
+    if (!ALLOWED_SORT_COLUMNS.includes(sortBy)) {
+      throw new Error(`Invalid sort column: ${sortBy}`);
+    }
+
+    // Validate sort order
+    if (!ALLOWED_SORT_ORDERS.includes(sortOrder)) {
+      throw new Error(`Invalid sort order: ${sortOrder}`);
+    }
+
     query += ` ORDER BY ${sortBy} ${sortOrder}`;
 
     const stmt = this.db.prepare(query);
@@ -291,6 +369,9 @@ class MusicDatabase {
 
     allowedFields.forEach(field => {
       if (updates.hasOwnProperty(field)) {
+        // Validate field value before accepting
+        validateFieldValue(field, updates[field]);
+
         fields.push(`${field} = @${field}`);
         params[field] = updates[field];
       }

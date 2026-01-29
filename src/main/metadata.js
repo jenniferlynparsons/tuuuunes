@@ -15,6 +15,60 @@ const path = require('path');
 const fs = require('fs').promises;
 const crypto = require('crypto');
 
+// Security: Artwork validation configuration
+const ARTWORK_CONFIG = {
+  maxSize: 5 * 1024 * 1024, // 5MB max
+  validMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'],
+  magicBytes: {
+    'image/jpeg': [0xFF, 0xD8, 0xFF],
+    'image/jpg': [0xFF, 0xD8, 0xFF],
+    'image/png': [0x89, 0x50, 0x4E, 0x47],
+    'image/webp': [0x52, 0x49, 0x46, 0x46], // RIFF header
+    'image/gif': [0x47, 0x49, 0x46] // GIF
+  }
+};
+
+/**
+ * Validate artwork data for security
+ *
+ * @param {Object} artwork - Artwork object with data and format
+ * @returns {Object} Validation result { valid: boolean, reason?: string }
+ */
+function validateArtwork(artwork) {
+  if (!artwork || !artwork.data) {
+    return { valid: false, reason: 'No artwork data' };
+  }
+
+  // Check file size
+  if (artwork.data.length > ARTWORK_CONFIG.maxSize) {
+    return {
+      valid: false,
+      reason: `Artwork exceeds maximum size of ${ARTWORK_CONFIG.maxSize / 1024 / 1024}MB`
+    };
+  }
+
+  // Check MIME type
+  const format = artwork.format || 'unknown';
+  if (!ARTWORK_CONFIG.validMimeTypes.includes(format)) {
+    return { valid: false, reason: `Invalid artwork format: ${format}` };
+  }
+
+  // Verify magic bytes match claimed format
+  const expectedMagic = ARTWORK_CONFIG.magicBytes[format];
+  if (expectedMagic) {
+    for (let i = 0; i < expectedMagic.length; i++) {
+      if (artwork.data[i] !== expectedMagic[i]) {
+        return {
+          valid: false,
+          reason: `Artwork magic bytes do not match claimed format ${format}`
+        };
+      }
+    }
+  }
+
+  return { valid: true };
+}
+
 /**
  * Extract metadata from an audio file
  *
@@ -129,6 +183,13 @@ async function extractMetadata(filePath) {
  */
 async function cacheArtwork(artwork, artworkDir) {
   if (!artwork || !artwork.data) {
+    return null;
+  }
+
+  // Security: Validate artwork before caching
+  const validation = validateArtwork(artwork);
+  if (!validation.valid) {
+    console.warn(`Skipping invalid artwork: ${validation.reason}`);
     return null;
   }
 
