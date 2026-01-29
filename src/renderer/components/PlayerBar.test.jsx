@@ -28,7 +28,8 @@ describe('PlayerBar Component', () => {
 
     test('calls onPlayPause when play button clicked', () => {
       const onPlayPause = jest.fn();
-      render(<PlayerBar onPlayPause={onPlayPause} />);
+      const track = { title: 'Test', artist: 'Artist' };
+      render(<PlayerBar onPlayPause={onPlayPause} currentTrack={track} />);
 
       fireEvent.click(screen.getByLabelText('Play'));
 
@@ -37,7 +38,7 @@ describe('PlayerBar Component', () => {
 
     test('calls onPrevious when previous button clicked', () => {
       const onPrevious = jest.fn();
-      render(<PlayerBar onPrevious={onPrevious} />);
+      render(<PlayerBar onPrevious={onPrevious} hasPrevious={true} />);
 
       fireEvent.click(screen.getByLabelText('Previous track'));
 
@@ -46,7 +47,7 @@ describe('PlayerBar Component', () => {
 
     test('calls onNext when next button clicked', () => {
       const onNext = jest.fn();
-      render(<PlayerBar onNext={onNext} />);
+      render(<PlayerBar onNext={onNext} hasNext={true} />);
 
       fireEvent.click(screen.getByLabelText('Next track'));
 
@@ -96,12 +97,6 @@ describe('PlayerBar Component', () => {
       expect(screen.getByText('Test Artist')).toBeInTheDocument();
     });
 
-    test('shows separator between title and artist', () => {
-      const track = { title: 'Test Song', artist: 'Test Artist' };
-      render(<PlayerBar currentTrack={track} />);
-
-      expect(screen.getByText('—', { exact: false })).toBeInTheDocument();
-    });
   });
 
   describe('Volume Control', () => {
@@ -166,9 +161,155 @@ describe('PlayerBar Component', () => {
         width: 100,
       }));
 
-      fireEvent.click(progressTrack, { clientX: 50 });
+      fireEvent.mouseDown(progressTrack, { clientX: 50 });
+      fireEvent.mouseUp(progressTrack, { clientX: 50 });
 
       expect(onSeek).toHaveBeenCalledWith(50);
+    });
+
+    test('supports keyboard navigation on progress bar', () => {
+      const onSeek = jest.fn();
+      render(<PlayerBar duration={100} currentTime={50} onSeek={onSeek} />);
+
+      const progressTrack = screen.getByRole('slider', { name: 'Seek' });
+
+      // Arrow right should seek forward
+      fireEvent.keyDown(progressTrack, { key: 'ArrowRight' });
+      expect(onSeek).toHaveBeenCalledWith(55); // 50 + 5 second step
+
+      // Arrow left should seek backward
+      fireEvent.keyDown(progressTrack, { key: 'ArrowLeft' });
+      expect(onSeek).toHaveBeenCalledWith(45); // 50 - 5 second step
+    });
+
+    test('Home key seeks to beginning', () => {
+      const onSeek = jest.fn();
+      render(<PlayerBar duration={100} currentTime={50} onSeek={onSeek} />);
+
+      const progressTrack = screen.getByRole('slider', { name: 'Seek' });
+      fireEvent.keyDown(progressTrack, { key: 'Home' });
+
+      expect(onSeek).toHaveBeenCalledWith(0);
+    });
+
+    test('End key seeks to end', () => {
+      const onSeek = jest.fn();
+      render(<PlayerBar duration={100} currentTime={50} onSeek={onSeek} />);
+
+      const progressTrack = screen.getByRole('slider', { name: 'Seek' });
+      fireEvent.keyDown(progressTrack, { key: 'End' });
+
+      expect(onSeek).toHaveBeenCalledWith(100);
+    });
+  });
+
+  describe('Disabled States', () => {
+    test('previous button is disabled when hasPrevious is false', () => {
+      render(<PlayerBar hasPrevious={false} />);
+
+      expect(screen.getByLabelText('Previous track')).toBeDisabled();
+    });
+
+    test('previous button is enabled when hasPrevious is true', () => {
+      render(<PlayerBar hasPrevious={true} />);
+
+      expect(screen.getByLabelText('Previous track')).not.toBeDisabled();
+    });
+
+    test('next button is disabled when hasNext is false', () => {
+      render(<PlayerBar hasNext={false} />);
+
+      expect(screen.getByLabelText('Next track')).toBeDisabled();
+    });
+
+    test('next button is enabled when hasNext is true', () => {
+      render(<PlayerBar hasNext={true} />);
+
+      expect(screen.getByLabelText('Next track')).not.toBeDisabled();
+    });
+
+    test('buttons are disabled during loading', () => {
+      render(<PlayerBar isLoading={true} hasPrevious={true} hasNext={true} />);
+
+      expect(screen.getByLabelText('Previous track')).toBeDisabled();
+      expect(screen.getByLabelText('Next track')).toBeDisabled();
+    });
+  });
+
+  describe('Loading State', () => {
+    test('shows loading spinner when isLoading is true', () => {
+      render(<PlayerBar isLoading={true} />);
+
+      expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+    });
+
+    test('shows play button when not loading and not playing', () => {
+      render(<PlayerBar isLoading={false} isPlaying={false} />);
+
+      expect(screen.getByLabelText('Play')).toBeInTheDocument();
+    });
+
+    test('shows pause button when not loading and playing', () => {
+      render(<PlayerBar isLoading={false} isPlaying={true} />);
+
+      expect(screen.getByLabelText('Pause')).toBeInTheDocument();
+    });
+  });
+
+  describe('Artwork Display', () => {
+    test('shows artwork when track has artwork_path', () => {
+      const track = {
+        title: 'Test Song',
+        artist: 'Test Artist',
+        album: 'Test Album',
+        artwork_path: '/path/to/artwork.jpg',
+      };
+      render(<PlayerBar currentTrack={track} />);
+
+      const artwork = screen.getByAltText('Test Album artwork');
+      expect(artwork).toBeInTheDocument();
+      expect(artwork).toHaveAttribute('src', 'file:///path/to/artwork.jpg');
+    });
+
+    test('shows placeholder when track has no artwork', () => {
+      const track = {
+        title: 'Test Song',
+        artist: 'Test Artist',
+      };
+      render(<PlayerBar currentTrack={track} />);
+
+      // Placeholder should exist (div with placeholder class) but no img element
+      const placeholder = document.querySelector('.player-bar__artwork--placeholder');
+      expect(placeholder).toBeInTheDocument();
+      expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    });
+
+    test('uses track title for alt text when no album', () => {
+      const track = {
+        title: 'Test Song',
+        artist: 'Test Artist',
+        artwork_path: '/path/to/artwork.jpg',
+      };
+      render(<PlayerBar currentTrack={track} />);
+
+      const artwork = screen.getByAltText('Test Song artwork');
+      expect(artwork).toBeInTheDocument();
+    });
+  });
+
+  describe('Track Info Layout', () => {
+    test('displays title and artist in separate elements', () => {
+      const track = {
+        title: 'Test Song',
+        artist: 'Test Artist',
+      };
+      render(<PlayerBar currentTrack={track} />);
+
+      const title = screen.getByText('Test Song');
+      const artist = screen.getByText('Test Artist');
+
+      expect(title).toHaveClass('player-bar__track-title');
+      expect(artist).toHaveClass('player-bar__track-artist');
     });
   });
 });

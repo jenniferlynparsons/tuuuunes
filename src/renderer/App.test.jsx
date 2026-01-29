@@ -68,17 +68,19 @@ describe('App Component', () => {
   });
 
   describe('Player Controls', () => {
-    test('play button toggles to pause when clicked', () => {
+    test('play button is disabled when no track is loaded', () => {
       render(<App />);
 
-      // Initially shows play
-      expect(screen.getByLabelText('Play')).toBeInTheDocument();
+      const playButton = screen.getByLabelText('Play');
+      expect(playButton).toBeInTheDocument();
+      expect(playButton).toBeDisabled();
+    });
 
-      // Click play
-      fireEvent.click(screen.getByLabelText('Play'));
+    test('previous and next buttons are disabled initially', () => {
+      render(<App />);
 
-      // Now shows pause
-      expect(screen.getByLabelText('Pause')).toBeInTheDocument();
+      expect(screen.getByLabelText('Previous track')).toBeDisabled();
+      expect(screen.getByLabelText('Next track')).toBeDisabled();
     });
 
     test('shows no track selected initially', () => {
