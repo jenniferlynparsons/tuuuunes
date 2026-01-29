@@ -61,6 +61,9 @@ contextBridge.exposeInMainWorld('api', {
 // SECURITY: Raw ipcRenderer is NOT exposed to prevent bypassing context isolation.
 // All renderer-to-main communication must go through the curated 'api' object above.
 
+// SECURITY: Raw ipcRenderer is NOT exposed to prevent bypassing context isolation.
+// All renderer-to-main communication must go through the curated 'api' object above.
+
 // --------- Preload scripts loading ---------
 function domReady(condition: DocumentReadyState[] = ['complete', 'interactive']) {
   return new Promise(resolve => {
